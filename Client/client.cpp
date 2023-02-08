@@ -4,7 +4,7 @@
 using namespace std;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Здесь будет функционал клиента, пока только интерфйс
+// Здесь проcто интерфейс
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 IMPLEMENT_APP(MyApp);
@@ -58,8 +58,8 @@ Simple::Simple(const wxString &title)
   wxMenu *file2 = new wxMenu;
   wxMenu *file3 = new wxMenu;
   menubar = new wxMenuBar;
-  file->Append(ID_pref, wxT("&Preferences"));
-  file2->Append(ID_info, wxT("&About"));
+  file->Append(ID_pref, wxT("&Preferences\tCtrl-P"));
+  file2->Append(ID_info, wxT("&About\tCtrl-A"));
   file3->Append(wxID_EXIT, wxT("&Quit"));
   file->AppendSeparator();
   menubar->Append(file, wxT("&Settings"));
@@ -75,46 +75,22 @@ Simple::Simple(const wxString &title)
   Centre();
 }
 
-void Simple::Select() {
-  delete tc;
-  delete tc1;
+void Simple::Chat(wxString str) {
   delete text1;
   delete text2;
+  delete tc;
+  delete tc1;
   delete button;
   delete button1;
-  tc = new wxTextCtrl(this, -1, wxT(""), wxPoint(0, 0), wxSize(250, 30));
-  tc1 = new wxTextCtrl(this, -1, wxT(""), wxPoint(0, 0), wxSize(250, 30));
-  text1 = new wxStaticText(this, wxID_ANY, "Enter User's IP: ", wxPoint(10, 10),
-                           wxDefaultSize, wxALIGN_CENTRE);
-  text2 = new wxStaticText(this, wxID_ANY, "Enter Port: ", wxPoint(10, 10),
-                           wxDefaultSize, wxALIGN_CENTRE);
-  button = new wxButton(this, ID_start, wxT("Start"));
-  Connect(ID_start, wxEVT_COMMAND_BUTTON_CLICKED,
-          wxCommandEventHandler(Simple::Click2));
-  button->SetFocus();
-  topsizer->Add(text1, 0, wxEXPAND | wxALL, 15);
-  topsizer->Add(tc, 0, wxALIGN_CENTER | wxLEFT | wxRIGHT, 70);
-  topsizer->Add(text2, 0, wxEXPAND | wxALL, 15);
-  topsizer->Add(tc1, 0, wxALIGN_CENTER | wxLEFT | wxRIGHT, 70);
-  wxBoxSizer *button_sizer = new wxBoxSizer(wxHORIZONTAL);
-  button_sizer->Add(button, 0, wxALL, 20);
-  topsizer->Add(button_sizer, 0, wxALIGN_CENTER);
-  topsizer->SetSizeHints(this);
-  topsizer->Layout();
-}
-
-void Simple::Chat() {
-  delete tc;
-  delete tc1;
-  delete text1;
-  delete text2;
-  delete button;
-  wxStaticText *text1 =
-      new wxStaticText(this, wxID_ANY, "127.0.0.1", wxPoint(10, 10),
-                       wxSize(100, 20), wxALIGN_CENTRE);
+  wxStaticText *text1 = new wxStaticText(this, wxID_ANY, str, wxPoint(10, 10),
+                                         wxSize(100, 20), wxALIGN_CENTRE);
   MainEditBox =
-      new wxTextCtrl(this, wxID_ANY, "", wxPoint(-1, -1), wxSize(600, 300),
+      new wxTextCtrl(this, wxID_ANY, "", wxPoint(-1, -1), wxSize(600, 30),
+                     wxTE_RICH, wxDefaultValidator, "");
+  MsgHistory =
+      new wxTextCtrl(this, wxID_ANY, "", wxPoint(-1, -1), wxSize(600, 250),
                      wxTE_MULTILINE | wxTE_RICH, wxDefaultValidator, "");
+  MsgHistory->SetEditable(false);
   wxButton *button1 = new wxButton(this, ID_confirm, wxT("Send"));
   Connect(ID_confirm, wxEVT_COMMAND_BUTTON_CLICKED,
           wxCommandEventHandler(Simple::Confirm));
@@ -128,9 +104,14 @@ void Simple::Chat() {
           wxCommandEventHandler(Simple::Clear));
   button1->SetFocus();
   wxBoxSizer *topsizer = new wxBoxSizer(wxVERTICAL);
+  wxMenu *file4 = new wxMenu;
+  file4->Append(wxID_EXIT, wxT("Manage Chats\tAlt-C"));
+  menubar->Append(file4, wxT("Chats"));
   SetSizer(topsizer);
+
   topsizer->Add(text1, 0, wxEXPAND | wxALL, 10);
-  topsizer->Add(MainEditBox, 1, wxEXPAND | wxALL, 15);
+  topsizer->Add(MsgHistory, 1, wxEXPAND | wxALL, 15);
+  topsizer->Add(MainEditBox, 0, wxEXPAND | wxLEFT | wxRIGHT, 15);
   wxBoxSizer *button_sizer = new wxBoxSizer(wxHORIZONTAL);
   button_sizer->Add(button1, 0, wxALL, 20);
   button_sizer->Add(button3, 0, wxALL, 20);
@@ -139,12 +120,20 @@ void Simple::Chat() {
   topsizer->SetSizeHints(this);
 }
 
-void Simple::Click1(wxCommandEvent &event) { Select(); }
-
-void Simple::Click2(wxCommandEvent &event) {
-  cout << "User's IP: " << tc->GetValue() << endl;
-  cout << "User's port: " << tc1->GetValue() << endl;
-  Chat();
+void Simple::Click1(wxCommandEvent &event) {
+  unsigned hash = 0;
+  string str = tc1->GetValue().ToStdString();
+  for (int i = 0; i < str.size(); i++) {
+    hash += (int)str[i];
+    hash += (hash << 10);
+    hash ^= (hash >> 6);
+  }
+  hash += (hash << 3);
+  hash ^= (hash >> 11);
+  hash += (hash << 15);
+  cout << "Username: " << tc->GetValue() << endl;
+  cout << "Password(encrypted): " << hash << endl;
+  Chat(wxT("Здесь будет айпи сервера"));
 }
 
 void Simple::ShowMessage(wxCommandEvent &event) {
@@ -169,13 +158,14 @@ void Simple::OnOpen(wxCommandEvent &event) {
   wxFileDialog *openFileDialog = new wxFileDialog(this);
   if (openFileDialog->ShowModal() == wxID_OK) {
     wxString fileName = openFileDialog->GetPath();
-    std::cout << fileName << std::endl;
+    MsgHistory->AppendText(wxT("[YOU]: ") + fileName + wxT("\n"));
   }
 }
 
 void Simple::Confirm(wxCommandEvent &event) {
-  string s = MainEditBox->GetValue().ToStdString();
-  cout << s << endl;
+  wxString s = MainEditBox->GetValue();
+  MsgHistory->AppendText(wxT("[YOU]: ") + s + wxT("\n"));
+  MainEditBox->Clear();
 }
 
-void Simple::Clear(wxCommandEvent &event) { MainEditBox->Clear(); }
+void Simple::Clear(wxCommandEvent &event) { MsgHistory->Clear(); }
