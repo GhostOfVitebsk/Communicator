@@ -163,8 +163,10 @@ void Simple::OnOpen(wxCommandEvent &event) {
 }
 
 void Simple::Confirm(wxCommandEvent &event) {
+  wxDateTime now = wxDateTime::Now();
+  wxString date1 = now.Format();
   wxString s = MainEditBox->GetValue();
-  MsgHistory->AppendText(wxT("[YOU]: ") + s + wxT("\n"));
+  MsgHistory->AppendText(wxT("[") + date1 + wxT("] YOU: ") + s + wxT("\n"));
   MainEditBox->Clear();
 }
 
